@@ -1,5 +1,5 @@
 # Default activation function, possible values are listed in dictionary "act_fns" above
-default_act_fn = "RELU"
+act_function_name = "RELU"
 
 
 # Set use of batch normalization and momentum

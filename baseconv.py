@@ -10,7 +10,7 @@ class LayerBase(nn.Module):
     @brief:
     This base class contains necessary parts for each feedforward layer type
     """
-    def __init__(self, act_fn:str=config.default_act_fn, is_last_layer:bool=False):
+    def __init__(self, act_fn:str=config.act_function_name, is_last_layer:bool=False):
         super(LayerBase, self).__init__()
         self.is_last_layer = is_last_layer
         self.act_function_name = act_fn
@@ -47,7 +47,10 @@ class LayerBase(nn.Module):
 
 
 class Conv2DBase(LayerBase):
-    """Some Information about BaseLayer"""
+    """
+    @brief:
+    This is the base class for conv2d. Batchnormalization, dropout as well as the activation function can be chosen. The Class inherits some basic methods from the parent class LayerBase
+    """
     def __init__(
             self,
             in_channels,
@@ -56,9 +59,10 @@ class Conv2DBase(LayerBase):
             employ_batch_normalization_conv = config.employ_batch_normalization_conv,
             employ_dropout_conv = config.employ_dropout_conv,
             padding = [0,0],
-            stride = [1,1]
+            stride = [1,1],
+            act_function_name=config.act_function_name,
         ):
-        super(Conv2DBase, self).__init__()
+        super(Conv2DBase, self).__init__(act_function_name)
         
         self.same_padding = nn.ReplicationPad2d(padding) if padding!=[0,0] else None
         self.conv = nn.Conv2d(
@@ -69,10 +73,10 @@ class Conv2DBase(LayerBase):
             stride = stride, 
             padding = [0,0]
         )
-        self.initialize(self.conv)
+        self._initialize(self.conv)
         
-        self.bn = self._apply_normalization() if employ_batch_normalization_conv else None
-        self.act = self._activation_func(out_channels = out_channels)
+        self.bn = self._apply_normalization(out_channels=out_channels) if employ_batch_normalization_conv else None
+        self.act = self._activation_func()
         self.drop = nn.Dropout2d(p = 1 - config.dropout_rate) if employ_dropout_conv else None
 
     def forward(self, x:torch.Tensor)->torch.Tensor:
@@ -90,97 +94,97 @@ class Conv2DBase(LayerBase):
         """Provide batch normalization to layer"""
         return nn.BatchNorm2d(num_features=out_channels,momentum=config.batch_normalization_momentum)
 
-class InceptionBranchFactorization1(nn.Module):
-    """Some Information about InceptionBranchFactorization1"""
-    def __init__(self,in_channels, out_channels, kernel_size, stride, in_size):
-        super(InceptionBranchFactorization1, self).__init__()
+# class InceptionBranchFactorization1(nn.Module):
+#     """Some Information about InceptionBranchFactorization1"""
+#     def __init__(self,in_channels, out_channels, kernel_size, stride, in_size):
+#         super(InceptionBranchFactorization1, self).__init__()
 
-        self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
-        ks=(ceil(kernel_size[0]/2), ceil(kernel_size[1]/2))
-        padding = [
-            ks[1]//2-1+ks[1]%2,
-            ks[1]//2,
-            ks[0]//2-1+ks[0]%2,
-            ks[0]//2
-        ]
-        self.same_padding1 = nn.ReplicationPad2d(padding)
+#         self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
+#         ks=(ceil(kernel_size[0]/2), ceil(kernel_size[1]/2))
+#         padding = [
+#             ks[1]//2-1+ks[1]%2,
+#             ks[1]//2,
+#             ks[0]//2-1+ks[0]%2,
+#             ks[0]//2
+#         ]
+#         self.same_padding1 = nn.ReplicationPad2d(padding)
 
-        self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=ks)
-        padding = calc_padding([in_size[1],in_size[2]],ks,stride)
-        self.same_padding2 = nn.ReplicationPad2d(padding)
-        self.branch_3 = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
+#         self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=ks)
+#         padding = calc_padding([in_size[1],in_size[2]],ks,stride)
+#         self.same_padding2 = nn.ReplicationPad2d(padding)
+#         self.branch_3 = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
 
-    def forward(self, x):
-        x = self.branch_1(x)
-        x = self.same_padding1(x)
-        x = self.branch_2(x)
-        x = self.same_padding2(x)
-        x = self.branch_3(x)
+#     def forward(self, x):
+#         x = self.branch_1(x)
+#         x = self.same_padding1(x)
+#         x = self.branch_2(x)
+#         x = self.same_padding2(x)
+#         x = self.branch_3(x)
 
-        return x
+#         return x
 
-class InceptionBranchFactorization1Split(nn.Module):
-    """Some Information about InceptionBranchFactorization1Split"""
-    def __init__(self,in_channels, out_channels, kernel_size, stride,in_size):
-        super(InceptionBranchFactorization1Split, self).__init__()
+# class InceptionBranchFactorization1Split(nn.Module):
+#     """Some Information about InceptionBranchFactorization1Split"""
+#     def __init__(self,in_channels, out_channels, kernel_size, stride,in_size):
+#         super(InceptionBranchFactorization1Split, self).__init__()
 
-        self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
-        ks=(ceil(kernel_size[0]/2), ceil(kernel_size[1]/2))
-        padding = [
-            ks[1]//2-1+ks[1]%2,
-            ks[1]//2,
-            ks[0]//2-1+ks[0]%2,
-            ks[0]//2
-        ]
-        self.same_padding_1 = nn.ReplicationPad2d(padding)
-        self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=ks)
-        ks=(1, ceil(kernel_size[1]/2))
-        padding = calc_padding([in_size[1],in_size[2]],ks,stride)
-        self.same_padding_2 = nn.ReplicationPad2d(padding)
-        self.branch_3a = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
-        ks=(ceil(kernel_size[0]/2),1)
-        padding = calc_padding([in_size[1],in_size[2]],ks,stride)
-        self.same_padding_3 = nn.ReplicationPad2d(padding)
-        self.branch_3b = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
+#         self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
+#         ks=(ceil(kernel_size[0]/2), ceil(kernel_size[1]/2))
+#         padding = [
+#             ks[1]//2-1+ks[1]%2,
+#             ks[1]//2,
+#             ks[0]//2-1+ks[0]%2,
+#             ks[0]//2
+#         ]
+#         self.same_padding_1 = nn.ReplicationPad2d(padding)
+#         self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=ks)
+#         ks=(1, ceil(kernel_size[1]/2))
+#         padding = calc_padding([in_size[1],in_size[2]],ks,stride)
+#         self.same_padding_2 = nn.ReplicationPad2d(padding)
+#         self.branch_3a = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
+#         ks=(ceil(kernel_size[0]/2),1)
+#         padding = calc_padding([in_size[1],in_size[2]],ks,stride)
+#         self.same_padding_3 = nn.ReplicationPad2d(padding)
+#         self.branch_3b = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
 
-    def forward(self, x):
-        x = self.branch_1(x)
-        x = self.same_padding_1(x)
-        x = self.branch_2(x)
-        xa = self.same_padding_2(x)
-        xa = self.branch_3a(xa)
-        xb = self.same_padding_3(x)
-        xb = self.branch_3b(xb)
+#     def forward(self, x):
+#         x = self.branch_1(x)
+#         x = self.same_padding_1(x)
+#         x = self.branch_2(x)
+#         xa = self.same_padding_2(x)
+#         xa = self.branch_3a(xa)
+#         xb = self.same_padding_3(x)
+#         xb = self.branch_3b(xb)
 
 
-        return torch.cat([xa,xb],1)
+#         return torch.cat([xa,xb],1)
 
-class InceptionBranchAsynchFactorization(nn.Module):
-    """Some Information about InceptionBranchAsynchFactorization"""
-    def __init__(self,in_channels, out_channels, kernel_size, stride,in_size):
-        super(InceptionBranchAsynchFactorization, self).__init__()
+# class InceptionBranchAsynchFactorization(nn.Module):
+#     """Some Information about InceptionBranchAsynchFactorization"""
+#     def __init__(self,in_channels, out_channels, kernel_size, stride,in_size):
+#         super(InceptionBranchAsynchFactorization, self).__init__()
         
-        self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
-        ks = (1, kernel_size[1])
-        s = (1,stride[1])
-        padding = calc_padding([in_size[1],in_size[2]],ks,s)
+#         self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
+#         ks = (1, kernel_size[1])
+#         s = (1,stride[1])
+#         padding = calc_padding([in_size[1],in_size[2]],ks,s)
         
-        self.same_padding_1 = nn.ReplicationPad2d(padding)
-        self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=(1, kernel_size[1]), stride=(1,stride[1]))
-        ks = (kernel_size[0],1)
-        s = (stride[0],1)
-        padding = calc_padding([in_size[1],in_size[2]],ks,s)
-        self.same_padding_2 = nn.ReplicationPad2d(padding)
-        self.branch_3 = ConvLayerBase(out_channels, out_channels, kernel_size=(kernel_size[0], 1), stride=(stride[0],1))
+#         self.same_padding_1 = nn.ReplicationPad2d(padding)
+#         self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=(1, kernel_size[1]), stride=(1,stride[1]))
+#         ks = (kernel_size[0],1)
+#         s = (stride[0],1)
+#         padding = calc_padding([in_size[1],in_size[2]],ks,s)
+#         self.same_padding_2 = nn.ReplicationPad2d(padding)
+#         self.branch_3 = ConvLayerBase(out_channels, out_channels, kernel_size=(kernel_size[0], 1), stride=(stride[0],1))
 
-    def forward(self, x):
-        x = self.branch_1(x)
-        x = self.same_padding_1(x)
-        x = self.branch_2(x)
-        x = self.same_padding_2(x)
-        x = self.branch_3(x)
+#     def forward(self, x):
+#         x = self.branch_1(x)
+#         x = self.same_padding_1(x)
+#         x = self.branch_2(x)
+#         x = self.same_padding_2(x)
+#         x = self.branch_3(x)
 
-        return x
+#         return x
 
 def calc_padding(in_size,kernel_size,stride):
     if (in_size[0] % stride[0] == 0):
