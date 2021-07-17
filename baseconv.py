@@ -203,7 +203,3 @@ def calc_padding(in_size,kernel_size,stride):
     pad_left = pad_along_width // 2
     pad_right = pad_along_width - pad_left
     return [pad_left,pad_right,pad_top,pad_bottom]
-
-
-
-
