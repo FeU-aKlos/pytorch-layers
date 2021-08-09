@@ -16,16 +16,16 @@ def _bn_function_factory(norm, relu, conv):
 
 
 class DenseLayer(nn.Module):
-    def __init__(self, in_channels, growth_rate, bn_size, drop_rate, efficient=False):
+    def __init__(self, in_channels, growth_rate, bn_size, efficient=False):
         super(DenseLayer, self).__init__()
-        self.add_module('norm1', nn.BatchNorm2d(in_channels)),
-        self.add_module('relu1', nn.ReLU(inplace=True)),
+        self.add_module('norm1', nn.BatchNorm2d(in_channels))
+        self.add_module('relu1', nn.ReLU(inplace=True))
         self.add_module('conv1', nn.Conv2d(in_channels, bn_size * growth_rate,
-                        kernel_size=1, stride=1, bias=False)),
-        self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate)),
-        self.add_module('relu2', nn.ReLU(inplace=True)),
+                        kernel_size=1, stride=1, bias=False))
+        self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate))
+        self.add_module('relu2', nn.ReLU(inplace=True))
         self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate,
-                        kernel_size=3, stride=1, padding=1, bias=False)),
+                        kernel_size=3, stride=1, padding=1, bias=False))
         self.drop_rate = config.dropout_rate
         self.efficient = efficient
 
@@ -63,22 +63,22 @@ class DenseBlock(nn.Module):
         drop_rate (float) - dropout rate after each dense layer
         efficient (bool) - set to True to use checkpointing. Much more memory efficient, but slower.
     """
-    def __init__(self, num_layers, in_channels, bn_size=4, growth_rate=12, drop_rate=0.5, efficient=True, compression=0.5):
+    def __init__(self, num_layers, in_channels, bn_size=4, growth_rate=12, efficient=True, compression=0.5):
         super(DenseBlock, self).__init__()
         for i in range(num_layers):
             layer = DenseLayer(
                 in_channels + i * growth_rate,
                 growth_rate=growth_rate,
                 bn_size=bn_size,
-                drop_rate=drop_rate,
                 efficient=efficient,
             )
             self.add_module('denselayer%d' % (i + 1), layer)
-        out_channles = in_channels + num_layers * growth_rate
+        out_channles = in_channels+num_layers * growth_rate
         trans = Transition(
-            in_channels==out_channles, 
-            out_channles=int(out_channles * compression))
-        self.features.add_module('transition%d' % (i + 1), trans)
+            in_channels=out_channles, 
+            out_channles=int(out_channles * compression)
+        )
+        self.add_module('transition%d' % (i + 1), trans)
         out_channles = int(out_channles * compression)
 
 
