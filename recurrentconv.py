@@ -65,26 +65,7 @@ class RecurrentOuput2HiddenWeightSharingConv(Conv2DBase):
                         momentum=config.batch_normalization_momentum
                     ) for i in range(steps)
                 ]
-            ) if self.employ_batch_normalization_conself.recurrent_conv = RecurrentOuput2HiddenWeightSharingConv(
-            in_channels=self.in_channels,
-            out_channels=self.out_channels,
-            kernel_size=self.kernel_size, 
-            stride=self.stride,
-            in_size=[self.input_width,self.input_height]            
-        )
-        
-        self.assertTrue(
-            self.recurrent_conv(x).size()
-            ==
-            torch.Size(
-                (
-                    self.batch_size,
-                    self.out_channels,
-                    ceil(self.input_width/self.stride[0]),
-                    ceil(self.input_height/self.stride[1])
-                )
-            )
-        )v else None
+            ) if self.employ_batch_normalization_conv else None
         )
         
         self.add_module(
