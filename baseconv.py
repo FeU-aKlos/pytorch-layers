@@ -49,6 +49,60 @@ class LayerBase(nn.Module):
 class Conv2DBase(LayerBase):
     """
     @brief:
+    This is the base class for conv2d. The activation function can be chosen. The Class inherits some basic methods from the parent class LayerBase. Furthermore apply normalization depending on the config. Besides, same padding can be calculated.
+    """
+    def __init__(
+            self,
+            in_channels,
+            out_channels,
+            kernel_size = [3,3],
+            stride = [1,1],
+            in_size=[32,32],
+            employ_batch_normalization_conv = config.employ_batch_normalization_conv,
+            employ_dropout_conv = config.employ_dropout_conv,
+            act_function_name=config.act_function_name,
+        ):
+        super(Conv2DBase, self).__init__(act_function_name)
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.employ_batch_normalization_conv = employ_batch_normalization_conv
+        self.employ_dropout_conv = employ_dropout_conv
+        self.stride = stride
+        self.in_size = in_size
+        
+        self.padding= self._calc_padding(in_size=in_size,kernel_size=kernel_size,stride=stride)
+        self.add_module("same_padding",nn.ReplicationPad2d(self.padding) if self.padding!=0 or (len(self.padding)>1 and sum(self.padding)>=1) else None) 
+
+    def forward(self, x:torch.Tensor)->torch.Tensor:
+
+        return x
+
+    def _apply_normalization(self,out_channels):
+        """Provide batch normalization to layer"""
+        return nn.BatchNorm2d(num_features=out_channels,momentum=config.batch_normalization_momentum)
+    
+    def _calc_padding(self,in_size,kernel_size,stride):
+        if (in_size[0] % stride[0] == 0):
+            pad_along_height = max(kernel_size[0] - stride[0], 0)
+        else:
+            pad_along_height = max(kernel_size[0] - (in_size[0] % stride[0]), 0)
+        if (in_size[1] % stride[1] == 0):
+            pad_along_width = max(kernel_size[1] - stride[1], 0)
+        else:
+            pad_along_width = max(kernel_size[1] - (in_size[1] % stride[1]), 0)
+        
+        #Finally, the padding on the top, bottom, left and right are:
+
+        pad_top = pad_along_height // 2
+        pad_bottom = pad_along_height - pad_top
+        pad_left = pad_along_width // 2
+        pad_right = pad_along_width - pad_left
+        return [pad_left,pad_right,pad_top,pad_bottom]
+
+class Conv2D(Conv2DBase):
+    """
+    @brief:
     This is the base class for conv2d. Batchnormalization, dropout as well as the activation function can be chosen. The Class inherits some basic methods from the parent class LayerBase
     """
     def __init__(
@@ -56,28 +110,48 @@ class Conv2DBase(LayerBase):
             in_channels,
             out_channels,
             kernel_size = [3,3],
+            stride = [1,1],
+            in_size =  [32,32],
             employ_batch_normalization_conv = config.employ_batch_normalization_conv,
             employ_dropout_conv = config.employ_dropout_conv,
-            padding = [0,0],
-            stride = [1,1],
             act_function_name=config.act_function_name,
         ):
-        super(Conv2DBase, self).__init__(act_function_name)
+        super(Conv2D, self).__init__(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                employ_batch_normalization_conv=employ_batch_normalization_conv,
+                employ_dropout_conv=employ_dropout_conv,
+                in_size=in_size,
+                stride=stride,
+                act_function_name=act_function_name
+            )
         
-        self.same_padding = nn.ReplicationPad2d(padding) if padding!=[0,0] else None
-        self.conv = nn.Conv2d(
-            in_channels = in_channels, 
-            out_channels = out_channels,
-            kernel_size=kernel_size,
-            bias = False if employ_batch_normalization_conv else True,
-            stride = stride, 
-            padding = [0,0]
+        
+        self.add_module(
+            "conv", nn.Conv2d(
+                in_channels = in_channels, 
+                out_channels = out_channels,
+                kernel_size=kernel_size,
+                bias = False if employ_batch_normalization_conv else True,
+                stride = stride, 
+                padding = [0,0]
+            )
         )
         self._initialize(self.conv)
         
-        self.bn = self._apply_normalization(out_channels=out_channels) if employ_batch_normalization_conv else None
-        self.act = self._activation_func()
-        self.drop = nn.Dropout2d(p = 1 - config.dropout_rate) if employ_dropout_conv else None
+        self.add_module(
+            "bn",
+            self._apply_normalization(out_channels=out_channels) if employ_batch_normalization_conv else None
+        )
+        self.add_module(
+            "act",
+            self._activation_func()
+        )
+        self.add_module(
+            "drop",
+            nn.Dropout2d(p = 1 - config.dropout_rate) if employ_dropout_conv else None
+        )
 
     def forward(self, x:torch.Tensor)->torch.Tensor:
         if self.same_padding!=None:
@@ -89,117 +163,3 @@ class Conv2DBase(LayerBase):
         if self.drop!=None:
             x = self.drop(x)
         return x
-
-    def _apply_normalization(self,out_channels):
-        """Provide batch normalization to layer"""
-        return nn.BatchNorm2d(num_features=out_channels,momentum=config.batch_normalization_momentum)
-
-# class InceptionBranchFactorization1(nn.Module):
-#     """Some Information about InceptionBranchFactorization1"""
-#     def __init__(self,in_channels, out_channels, kernel_size, stride, in_size):
-#         super(InceptionBranchFactorization1, self).__init__()
-
-#         self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
-#         ks=(ceil(kernel_size[0]/2), ceil(kernel_size[1]/2))
-#         padding = [
-#             ks[1]//2-1+ks[1]%2,
-#             ks[1]//2,
-#             ks[0]//2-1+ks[0]%2,
-#             ks[0]//2
-#         ]
-#         self.same_padding1 = nn.ReplicationPad2d(padding)
-
-#         self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=ks)
-#         padding = calc_padding([in_size[1],in_size[2]],ks,stride)
-#         self.same_padding2 = nn.ReplicationPad2d(padding)
-#         self.branch_3 = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
-
-#     def forward(self, x):
-#         x = self.branch_1(x)
-#         x = self.same_padding1(x)
-#         x = self.branch_2(x)
-#         x = self.same_padding2(x)
-#         x = self.branch_3(x)
-
-#         return x
-
-# class InceptionBranchFactorization1Split(nn.Module):
-#     """Some Information about InceptionBranchFactorization1Split"""
-#     def __init__(self,in_channels, out_channels, kernel_size, stride,in_size):
-#         super(InceptionBranchFactorization1Split, self).__init__()
-
-#         self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
-#         ks=(ceil(kernel_size[0]/2), ceil(kernel_size[1]/2))
-#         padding = [
-#             ks[1]//2-1+ks[1]%2,
-#             ks[1]//2,
-#             ks[0]//2-1+ks[0]%2,
-#             ks[0]//2
-#         ]
-#         self.same_padding_1 = nn.ReplicationPad2d(padding)
-#         self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=ks)
-#         ks=(1, ceil(kernel_size[1]/2))
-#         padding = calc_padding([in_size[1],in_size[2]],ks,stride)
-#         self.same_padding_2 = nn.ReplicationPad2d(padding)
-#         self.branch_3a = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
-#         ks=(ceil(kernel_size[0]/2),1)
-#         padding = calc_padding([in_size[1],in_size[2]],ks,stride)
-#         self.same_padding_3 = nn.ReplicationPad2d(padding)
-#         self.branch_3b = ConvLayerBase(out_channels, out_channels, kernel_size=ks, stride=stride)
-
-#     def forward(self, x):
-#         x = self.branch_1(x)
-#         x = self.same_padding_1(x)
-#         x = self.branch_2(x)
-#         xa = self.same_padding_2(x)
-#         xa = self.branch_3a(xa)
-#         xb = self.same_padding_3(x)
-#         xb = self.branch_3b(xb)
-
-
-#         return torch.cat([xa,xb],1)
-
-# class InceptionBranchAsynchFactorization(nn.Module):
-#     """Some Information about InceptionBranchAsynchFactorization"""
-#     def __init__(self,in_channels, out_channels, kernel_size, stride,in_size):
-#         super(InceptionBranchAsynchFactorization, self).__init__()
-        
-#         self.branch_1 = ConvLayerBase(in_channels, out_channels, kernel_size=1)
-#         ks = (1, kernel_size[1])
-#         s = (1,stride[1])
-#         padding = calc_padding([in_size[1],in_size[2]],ks,s)
-        
-#         self.same_padding_1 = nn.ReplicationPad2d(padding)
-#         self.branch_2 = ConvLayerBase(out_channels, out_channels, kernel_size=(1, kernel_size[1]), stride=(1,stride[1]))
-#         ks = (kernel_size[0],1)
-#         s = (stride[0],1)
-#         padding = calc_padding([in_size[1],in_size[2]],ks,s)
-#         self.same_padding_2 = nn.ReplicationPad2d(padding)
-#         self.branch_3 = ConvLayerBase(out_channels, out_channels, kernel_size=(kernel_size[0], 1), stride=(stride[0],1))
-
-#     def forward(self, x):
-#         x = self.branch_1(x)
-#         x = self.same_padding_1(x)
-#         x = self.branch_2(x)
-#         x = self.same_padding_2(x)
-#         x = self.branch_3(x)
-
-#         return x
-
-def calc_padding(in_size,kernel_size,stride):
-    if (in_size[0] % stride[0] == 0):
-        pad_along_height = max(kernel_size[0] - stride[0], 0)
-    else:
-        pad_along_height = max(kernel_size[0] - (in_size[0] % stride[0]), 0)
-    if (in_size[1] % stride[1] == 0):
-        pad_along_width = max(kernel_size[1] - stride[1], 0)
-    else:
-        pad_along_width = max(kernel_size[1] - (in_size[1] % stride[1]), 0)
-    
-    #Finally, the padding on the top, bottom, left and right are:
-
-    pad_top = pad_along_height // 2
-    pad_bottom = pad_along_height - pad_top
-    pad_left = pad_along_width // 2
-    pad_right = pad_along_width - pad_left
-    return [pad_left,pad_right,pad_top,pad_bottom]

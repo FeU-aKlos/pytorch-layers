@@ -23,7 +23,7 @@ class ConvLSTM(nn.Module):
 
         super(ConvLSTM, self).__init__()
 
-        self.in_channels = in_channels
+        self.in_channels = in_channels  
         self.hidden_channels = hidden_channels
 
         self.kernel_size = kernel_size
