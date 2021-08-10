@@ -46,7 +46,7 @@ class TestConvLSTM(unittest.TestCase):
         self.assertEqual(self.conv_lstm.Wcf,None)
         self.assertEqual(self.conv_lstm.Wco,None)
         
-        self.conv_lstm.initialize(self.input_width,self.input_height)
+        self.conv_lstm.initialize_gates(self.input_width,self.input_height)
         
         self.assertNotEqual(self.conv_lstm.Wci,None)
         self.assertNotEqual(self.conv_lstm.Wcf,None)

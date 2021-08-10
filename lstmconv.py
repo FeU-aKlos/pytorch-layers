@@ -85,13 +85,13 @@ class ConvLSTM(nn.Module):
                 c_cur = f*c_cur+i* torch.tanh(tmp_c)
                 o = torch.sigmoid(o)
                 
-                self.initialize(width=width,height=height)
+                self.initialize_gates(width=width,height=height)
             
             h_cur = o * torch.tanh(c_cur)
 
         return o
 
-    def initialize(self, width,height):
+    def initialize_gates(self, width,height):
         self.Wci = nn.Parameter(
             torch.zeros(
                 1, 
