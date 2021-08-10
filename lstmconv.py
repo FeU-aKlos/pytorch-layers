@@ -1,13 +1,24 @@
 import torch.nn as nn
 import torch
+from math import ceil
 
+from baseconv import Conv2DBase
 import config
 
-class ConvLSTM(nn.Module):
+class ConvLSTM(Conv2DBase):
 
-    def __init__(self, in_channels, hidden_channels, kernel_size, bias,time_steps):
+    def __init__(
+            self, 
+            in_channels, 
+            hidden_channels, 
+            kernel_size=[3,3], 
+            stride=[1,1],
+            in_size=[32,32],
+            employ_batch_normalization_conv=config.employ_batch_normalization_conv,
+            time_steps=4
+        ):
         """
-        Initialize ConvLSTM.
+        ConvLSTM.
 
         Parameters
         ----------
@@ -16,28 +27,41 @@ class ConvLSTM(nn.Module):
         hidden_channels: int
             Number of channels of hidden state.
         kernel_size: (int, int)
-            Size of the convolutional kernel.
-        bias: bool
-            Whether or not to add the bias.
+            Size of the convolutional kernel. Only uneven kernel sizes are currently supported!
+        stride: (int, int)
+            stride of the convolutional kernel.
+        in_size: (int, int)
+            input width and height.
+        employ_batch_normalization_conv: bool
+            determines if batch normalization is employed for convolutional layers.
+        time_steps: int
+            How many timesteps should be applied.
         """
-
-        super(ConvLSTM, self).__init__()
+        super(ConvLSTM, self).__init__(
+            in_channels=in_channels,
+            out_channels=hidden_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            in_size=in_size,
+            employ_batch_normalization_conv=employ_batch_normalization_conv
+        )
 
         self.in_channels = in_channels  
         self.hidden_channels = hidden_channels
 
         self.kernel_size = kernel_size
-        self.padding = kernel_size[0] // 2, kernel_size[1] // 2#adjust padding ;) and kernel size...
-        self.bias = bias
         self.time_steps = time_steps
 
+        self.padding_t = [kernel_size[0]//2,kernel_size[0]//2,kernel_size[1]//2,kernel_size[1]//2]
+        self.add_module("same_padding_t",nn.ReplicationPad2d(self.padding_t) if self.padding_t!=0 or (len(self.padding_t)>1 and sum(self.padding_t)>=1) else None) 
         self.add_module(
-            "conv",nn.Conv2d(
+            "conv_t",nn.Conv2d(
                 in_channels=self.in_channels + self.hidden_channels,
                 out_channels=4 * self.hidden_channels,
                 kernel_size=self.kernel_size,
-                padding=self.padding,
-                bias=self.bias
+                stride=[1,1],
+                padding=[0,0],
+                bias=False if config.employ_batch_normalization_conv else True
             )
         )
         self.add_module(
@@ -51,6 +75,10 @@ class ConvLSTM(nn.Module):
                 ]) if config.employ_batch_normalization_conv else None
         )
 
+        self.add_module(
+            "mp",nn.MaxPool2d(kernel_size=stride,stride=stride) if self.stride!=[1,1] else None
+        )
+
         self.Wci = None
         self.Wcf = None
         self.Wco = None
@@ -60,6 +88,8 @@ class ConvLSTM(nn.Module):
 
     def forward(self, input_tensor):
         #B,C,W,H
+        if self.mp != None:
+            input_tensor = self.mp(input_tensor)
         batch_size,_,width, height = input_tensor.size()
         
         #maybe to cuda o.O
@@ -67,10 +97,12 @@ class ConvLSTM(nn.Module):
         h_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float)
                 
         for t in range(self.time_steps):
-                
+            
             combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
-
-            combined_conv = self.conv(combined)
+            if self.same_padding_t!=None:
+                combined=self.same_padding_t(combined)
+            combined_conv = self.conv_t(combined)
+            
             if self.bn!=None:
                 combined_conv=self.bn[t](combined_conv)
             i, f, tmp_c, o = torch.chunk(combined_conv, self.number_of_gates_and_cells, dim=1)
@@ -92,6 +124,7 @@ class ConvLSTM(nn.Module):
         return o
 
     def initialize_gates(self, width,height):
+
         self.Wci = nn.Parameter(
             torch.zeros(
                 1, 
