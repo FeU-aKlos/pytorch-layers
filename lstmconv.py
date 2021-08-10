@@ -44,7 +44,7 @@ class ConvLSTM(nn.Module):
             "bn", nn.ModuleList(
                 [
                     nn.BatchNorm2d(
-                        num_features=hidden_channels,
+                        num_features=4* hidden_channels,
                         momentum=config.batch_normalization_momentum
                     ) 
                     for i in range(time_steps)
@@ -85,7 +85,7 @@ class ConvLSTM(nn.Module):
                 c_cur = f*c_cur+i* torch.tanh(tmp_c)
                 o = torch.sigmoid(o)
                 
-                self.initialize(batch_size=batch_size,width=width,height=height)
+                self.initialize(width=width,height=height)
             
             h_cur = o * torch.tanh(c_cur)
 
