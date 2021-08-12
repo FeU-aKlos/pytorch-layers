@@ -59,6 +59,7 @@ class ConvLSTM(Conv2DBase):
                 bias=False if config.employ_batch_normalization_conv else True
             )
         )
+        
         self.add_module(
             "bn", nn.ModuleList(
                 [
@@ -92,14 +93,13 @@ class ConvLSTM(Conv2DBase):
         #maybe to cuda o.O
         c_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float).to(self.device)
         h_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float).to(self.device)
-                
-        for t in range(self.time_steps):
-            
-            combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
-            if self.same_padding_t!=None:
-                combined=self.same_padding_t(combined)
-            combined_conv = self.conv_t(combined)
-            
+
+        combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
+        if self.same_padding_t!=None:
+            combined=self.same_padding_t(combined)
+        combined_conv = self.conv_t(combined)
+             
+        for t in range(self.time_steps):            
             if self.bn!=None:
                 combined_conv=self.bn[t](combined_conv)
             i, f, tmp_c, o = torch.chunk(combined_conv, self.number_of_gates_and_cells, dim=1)
