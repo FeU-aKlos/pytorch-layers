@@ -222,7 +222,7 @@ class DenseBlock(nn.Module):
 
 class SampleDenseNet(nn.Module):
     """
-    @brief: Sample Network demonstrating the utilization of an DenseBlock.
+    @brief: Sample Network demonstrating the utilization of a DenseBlock.
     """
     def __init__(self,in_channels,num_layers=16):
         super(SampleDenseNet, self).__init__()

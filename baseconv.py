@@ -164,6 +164,9 @@ class Conv2D(Conv2DBase):
         return x
 
 class SampleConvNet(nn.Module):
+    """
+    @brief: Sample Network demonstrating the utilization of a Conv2D layer.
+    """
     def __init__(
             self,
             in_channels,

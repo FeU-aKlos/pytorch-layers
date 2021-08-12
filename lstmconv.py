@@ -5,7 +5,23 @@ from baseconv import Conv2DBase
 import config
 
 class ConvLSTM(Conv2DBase):
-
+    """
+    @brief: ConvLSTM inherrits from Conv2DBase class.
+    in_channels: int
+        Number of channels of input tensor.
+    hidden_channels: int
+        Number of channels of hidden state.
+    kernel_size: (int, int)
+        Size of the convolutional kernel. Only uneven kernel sizes are currently supported!
+    stride: (int, int)
+        stride of the convolutional kernel.
+    in_size: (int, int)
+        input width and height.
+    employ_batch_normalization_conv: bool
+        determines if batch normalization is employed for convolutional layers.
+    time_steps: int
+        How many timesteps should be applied.
+    """
     def __init__(
             self, 
             in_channels, 
@@ -16,26 +32,6 @@ class ConvLSTM(Conv2DBase):
             employ_batch_normalization_conv=config.employ_batch_normalization_conv,
             time_steps=4
         ):
-        """
-        ConvLSTM.
-
-        Parameters
-        ----------
-        in_channels: int
-            Number of channels of input tensor.
-        hidden_channels: int
-            Number of channels of hidden state.
-        kernel_size: (int, int)
-            Size of the convolutional kernel. Only uneven kernel sizes are currently supported!
-        stride: (int, int)
-            stride of the convolutional kernel.
-        in_size: (int, int)
-            input width and height.
-        employ_batch_normalization_conv: bool
-            determines if batch normalization is employed for convolutional layers.
-        time_steps: int
-            How many timesteps should be applied.
-        """
         super(ConvLSTM, self).__init__(
             in_channels=in_channels,
             out_channels=hidden_channels,
@@ -125,7 +121,6 @@ class ConvLSTM(Conv2DBase):
         return o
 
     def initialize_gates(self, width,height):
-
         self.Wci = nn.Parameter(
             torch.zeros(
                 1, 
@@ -152,6 +147,9 @@ class ConvLSTM(Conv2DBase):
         ).to(self.device)
 
 class SampleConvLSTMNet(nn.Module):
+    """
+    @brief: Sample Network demonstrating the utilization of a ConvLSTM layer.
+    """
     def __init__(self,in_channels,hidden_channels, kernel_size, stride, in_size):
         super(SampleConvLSTMNet, self).__init__()
 

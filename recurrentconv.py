@@ -6,12 +6,20 @@ import torch.nn.functional as F
 import config
 
 class RecurrentConv(Conv2DBase):
-    """Some Information about RecurrentConv
-    https://www.cv-foundation.org/openaccess/content_cvpr_2015/papers/Liang_Recurrent_Convolutional_Neural_2015_CVPR_paper.pdf
-    no localresponse normalization. After each layer bn
-    no global max pooling
     """
-    
+    @bief: RecurrentConv inherrits from Conv2DBase
+    Imformation about the network can be found in
+    https://www.cv-foundation.org/openaccess/content_cvpr_2015/papers/Liang_Recurrent_Convolutional_Neural_2015_CVPR_paper.pdf
+    Differing from the paper instead of localresponse normalization batch normalization is applied. No global max pooling
+    in_channels (int): Determines the number of input channels
+    out_channels (int): Depicts the number of output channels
+    kernel size [int,int]: Is the kernel size
+    stride [int,int]: the stride
+    in_size [int,int]: the input width and height
+    employ_batch_normalization_conv (bool): if batch normalization should be applied
+    employ_dropout_conv (bool): if dropout should be applied
+    steps (int): how many time steps
+    """
     def __init__(
             self,
             in_channels, 
@@ -122,6 +130,9 @@ class RecurrentConv(Conv2DBase):
         return x
 
 class SampleRecurrentConvNet(nn.Module):
+    """
+    @brief: Sample Network demonstrating the utilization of a RecurrentConv layer.
+    """
     def __init__(
             self,
             in_channels,
