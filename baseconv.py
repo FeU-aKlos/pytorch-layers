@@ -30,7 +30,6 @@ class LayerBase(nn.Module):
             'RELU': nn.ReLU,
             'SIGMOID': nn.Sigmoid,
             'TANH': nn.Tanh,
-            'ELU': nn.ELU,
             'LEAKY_RELU':nn.LeakyReLU,
         }
         return activation_func_dict[self.act_function_name]()
@@ -38,7 +37,7 @@ class LayerBase(nn.Module):
 
     def _initialize(self,layer:torch.nn.Module):
         """
-        @brief: initializes the weights depending on the activation function. ELU does not becomes not initialized by kaimung- or xavier uniform distribution, because its not supported by torch (current version 1.9)
+        @brief: initializes the weights depending on the activation function.
         """
         if self.act_function_name in ["RELU",  "LEAKY_RELU"]:
             torch.nn.init.kaiming_uniform_(layer.weight,nonlinearity=self.act_function_name.lower())

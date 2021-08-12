@@ -5,50 +5,154 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 import config
+from baseconv import LayerBase
 
-def _bn_function_factory(norm, relu, conv):
+def _bn_function_factory(norm:nn.Module, relu:nn.Module, conv:nn.Module):
+    """
+    @brief: returns a function which concatenates the inputs and applies BN, RELU as well as CONV on it
+    """
     def bn_function(*inputs):
         concated_features = torch.cat(inputs, 1)
-        bottleneck_output = conv(relu(norm(concated_features)))
+        bottleneck_output = conv(
+            relu(
+                norm(
+                    concated_features
+                )
+            )
+        )
         return bottleneck_output
 
     return bn_function
 
 
-class DenseLayer(nn.Module):
+class DenseLayer(LayerBase):
+    """
+    @brief: concatenates the inputs of previous layers, applies batch normalization, activation function as well as a conv layer with kernel size 1x1. Afterwards, the outputs are again batch noramlized, a activation function is applied and a conv layer with kernel size 3x3 and stride 1x1 is utilized.
+    """
     def __init__(self, in_channels, growth_rate, bn_size, efficient=False):
         super(DenseLayer, self).__init__()
-        self.add_module('norm1', nn.BatchNorm2d(in_channels))
-        self.add_module('relu1', nn.ReLU(inplace=True))
-        self.add_module('conv1', nn.Conv2d(in_channels, bn_size * growth_rate,
-                        kernel_size=1, stride=1, bias=False))
-        self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate))
-        self.add_module('relu2', nn.ReLU(inplace=True))
-        self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate,
-                        kernel_size=3, stride=1, padding=1, bias=False))
+        self.add_module(
+            "norm1", 
+            nn.BatchNorm2d(
+                in_channels
+            )
+        )
+        self.add_module(
+            "relu1", 
+            nn.ReLU(
+                inplace=True
+            )
+        )
+        self.add_module(
+            "conv1", 
+            nn.Conv2d(
+                in_channels, 
+                bn_size * growth_rate,
+                kernel_size=1, 
+                stride=1,
+                bias=False
+            )
+        )
+        self._initialize(self.conv1)
+
+        self.add_module(
+            "norm2", 
+            nn.BatchNorm2d(
+                bn_size * growth_rate
+            )
+        )
+        self.add_module(
+            "relu2", 
+            nn.ReLU(
+                inplace=True
+            )
+        )
+        self.add_module(
+            "conv2", 
+            nn.Conv2d(
+                bn_size * growth_rate, 
+                growth_rate,
+                kernel_size=3, 
+                stride=1, 
+                padding=1,
+                bias=False
+            )
+        )
+        self._initialize(self.conv2)
+        
         self.drop_rate = config.dropout_rate
         self.efficient = efficient
 
     def forward(self, *prev_features):
-        bn_function = _bn_function_factory(self.norm1, self.relu1, self.conv1)
+        bn_function = _bn_function_factory(
+            self.norm1, 
+            self.relu1, 
+            self.conv1
+        )
         if self.efficient and any(prev_feature.requires_grad for prev_feature in prev_features):
-            bottleneck_output = cp.checkpoint(bn_function, *prev_features)
+            bottleneck_output = cp.checkpoint(
+                bn_function, 
+                *prev_features
+            )
         else:
-            bottleneck_output = bn_function(*prev_features)
-        new_features = self.conv2(self.relu2(self.norm2(bottleneck_output)))
+            bottleneck_output = bn_function(
+                *prev_features
+            )
+        new_features = self.conv2(
+            self.relu2(
+                self.norm2(
+                    bottleneck_output
+                )
+            )
+        )
         if config.employ_dropout_conv:
-            new_features = F.dropout(new_features, p=self.drop_rate, training=self.training)
+            new_features = F.dropout(
+                new_features, 
+                p=self.drop_rate, 
+                training=self.training
+            )
         return new_features
 
 
 class Transition(nn.Sequential):
-    def __init__(self, in_channels, out_channles):
+    """
+    @brief: reduces the output size of Denseblock. Consists of batchnormalization, activation function, convolutional layer and an average pooling layer.
+    """
+    def __init__(
+            self, 
+            in_channels, 
+            out_channles
+        ):
         super(Transition, self).__init__()
-        self.add_module('norm', nn.BatchNorm2d(in_channels))
-        self.add_module('relu', nn.ReLU(inplace=True))
-        self.add_module('conv', nn.Conv2d(in_channels, out_channles,
-                                          kernel_size=1, stride=1, bias=False))
-        self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
+        self.add_module(
+            "norm", 
+            nn.BatchNorm2d(
+                in_channels
+            )
+        )
+        self.add_module(
+            "relu", 
+            nn.ReLU(
+                inplace=True
+            )
+        )
+        self.add_module(
+            "conv", 
+            nn.Conv2d(
+                in_channels, 
+                out_channles,
+                kernel_size=1, 
+                stride=1, 
+                bias=False
+            )
+        )
+        self.add_module(
+            "pool", 
+            nn.AvgPool2d(
+                kernel_size=2, 
+                stride=2
+            )
+        )
 
 
 class DenseBlock(nn.Module):
@@ -62,8 +166,17 @@ class DenseBlock(nn.Module):
         growth_rate (int) - how many filters to add each layer (`k` in paper)
         drop_rate (float) - dropout rate after each dense layer
         efficient (bool) - set to True to use checkpointing. Much more memory efficient, but slower.
+        compression (float) - About which fraction, the number of output filters should be reduced.
     """
-    def __init__(self, num_layers, in_channels, bn_size=4, growth_rate=12, efficient=True, compression=0.5):
+    def __init__(
+            self, 
+            num_layers, 
+            in_channels, 
+            bn_size=4, 
+            growth_rate=12, 
+            efficient=True, 
+            compression=0.5
+        ):
         super(DenseBlock, self).__init__()
         for i in range(num_layers):
             layer = DenseLayer(
@@ -72,14 +185,24 @@ class DenseBlock(nn.Module):
                 bn_size=bn_size,
                 efficient=efficient,
             )
-            self.add_module('denselayer%d' % (i + 1), layer)
+            self.add_module(
+                "denselayer%d" % (i + 1),
+                layer
+            )
         out_channels = in_channels+num_layers * growth_rate
         trans = Transition(
             in_channels=out_channels, 
-            out_channles=int(out_channels * compression)
+            out_channles=int(
+                out_channels * compression
+            )
         )
-        self.add_module('transition%d' % (i + 1), trans)
-        self.out_channels = int(out_channels * compression)
+        self.add_module(
+            "transition%d" % (i + 1),
+            trans
+        )
+        self.out_channels = int(
+            out_channels * compression
+        )
 
 
     def forward(self, init_features):
@@ -89,10 +212,18 @@ class DenseBlock(nn.Module):
                 new_features = layer(*features)
                 features.append(new_features)
             else:
-                features = layer(torch.cat(features, 1))
+                features = layer(
+                    torch.cat(
+                        features, 
+                        1
+                    )
+                )
         return features
 
 class SampleDenseNet(nn.Module):
+    """
+    @brief: Sample Network demonstrating the utilization of an DenseBlock.
+    """
     def __init__(self,in_channels,num_layers=16):
         super(SampleDenseNet, self).__init__()
 
@@ -102,9 +233,23 @@ class SampleDenseNet(nn.Module):
                 num_layers=num_layers,in_channels=in_channels
             )
         )
-        self.add_module("flatten",nn.Flatten())
-        self.add_module("gap",nn.AdaptiveAvgPool2d((1,1)))
-        self.add_module("fc",nn.Linear(self.db.out_channels, 10)) 
+        self.add_module(
+            "flatten",
+            nn.Flatten()
+        )
+        self.add_module(
+            "gap",
+            nn.AdaptiveAvgPool2d(
+                (1,1)
+            )
+        )
+        self.add_module(
+            "fc",
+            nn.Linear(
+                self.db.out_channels,
+                10
+            )
+        ) 
         
 
     def forward(self,x):

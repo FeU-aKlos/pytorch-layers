@@ -90,6 +90,7 @@ class RecurrentConv(Conv2DBase):
                 in_size=in_size
             )
         )
+        self._initialize(self.scip_connection)
 
         self.is_bn = self.bn_conv_t!=None
         self.is_dropout = self.dropout_conv_t!=None
