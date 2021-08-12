@@ -2,9 +2,10 @@ import torch
 from torch import nn
 
 from baseconv import Conv2DBase,Conv2D
+import torch.nn.functional as F
 import config
 
-class RecurrentOuput2HiddenWeightSharingConv(Conv2DBase):
+class RecurrentConv(Conv2DBase):
     """Some Information about RecurrentConv
     https://www.cv-foundation.org/openaccess/content_cvpr_2015/papers/Liang_Recurrent_Convolutional_Neural_2015_CVPR_paper.pdf
     no localresponse normalization. After each layer bn
@@ -22,7 +23,7 @@ class RecurrentOuput2HiddenWeightSharingConv(Conv2DBase):
             employ_dropout_conv=config.employ_dropout_conv,
             steps=4
         ):
-        super(RecurrentOuput2HiddenWeightSharingConv, self).__init__(
+        super(RecurrentConv, self).__init__(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -118,3 +119,37 @@ class RecurrentOuput2HiddenWeightSharingConv(Conv2DBase):
             if self.is_dropout:
                 x = self.dropout_conv_t[i](x)
         return x
+
+class SampleRecurrentConvNet(nn.Module):
+    def __init__(
+            self,
+            in_channels,
+            out_channels, 
+            kernel_size, 
+            stride, 
+            in_size
+        ):
+        super(SampleRecurrentConvNet, self).__init__()
+
+        self.add_module(
+            "rc",
+            RecurrentConv(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                in_size=in_size
+            )
+        )
+        self.add_module("gap",nn.AdaptiveAvgPool2d((1,1)))
+        self.add_module("flatten",nn.Flatten())
+        self.add_module("fc",nn.Linear(out_channels, 10)) 
+        
+
+    def forward(self,x):
+        x = self.rc(x)
+        x = self.gap(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        output = F.log_softmax(x, dim=1)
+        return output

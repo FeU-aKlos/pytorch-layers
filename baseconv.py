@@ -1,7 +1,7 @@
 import torch
 from torch import is_grad_enabled, nn
 from math import ceil
-
+import torch.nn.functional as F
 import config
 
 
@@ -163,3 +163,37 @@ class Conv2D(Conv2DBase):
         if self.drop!=None:
             x = self.drop(x)
         return x
+
+class SampleConvNet(nn.Module):
+    def __init__(
+            self,
+            in_channels,
+            out_channels, 
+            kernel_size, 
+            stride, 
+            in_size
+        ):
+        super(SampleConvNet, self).__init__()
+
+        self.add_module(
+            "conv",
+            Conv2D(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                in_size=in_size
+            )
+        )
+        self.add_module("flatten",nn.Flatten())
+        self.add_module("gap",nn.AdaptiveAvgPool2d((1,1)))
+        self.add_module("fc",nn.Linear(out_channels, 10)) 
+        
+
+    def forward(self,x):
+        x = self.conv(x)
+        x = self.gap(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        output = F.log_softmax(x, dim=1)
+        return output

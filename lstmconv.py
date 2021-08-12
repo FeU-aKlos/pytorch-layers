@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch
-from math import ceil
-
+import torch.nn.functional as F
 from baseconv import Conv2DBase
 import config
 
@@ -85,6 +84,8 @@ class ConvLSTM(Conv2DBase):
 
         self.number_of_gates_and_cells = 4
 
+        self.device = torch.device("cuda" if  torch.cuda.is_available() else "cpu")
+
 
     def forward(self, input_tensor):
         #B,C,W,H
@@ -93,8 +94,8 @@ class ConvLSTM(Conv2DBase):
         batch_size,_,width, height = input_tensor.size()
         
         #maybe to cuda o.O
-        c_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float)
-        h_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float)
+        c_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float).to(self.device)
+        h_cur = torch.zeros((batch_size,self.hidden_channels,width,height),dtype=torch.float).to(self.device)
                 
         for t in range(self.time_steps):
             
@@ -132,7 +133,7 @@ class ConvLSTM(Conv2DBase):
                 width, 
                 height
             )
-        )
+        ).to(self.device)
         self.Wcf = nn.Parameter(
             torch.zeros(
                 1, 
@@ -140,7 +141,7 @@ class ConvLSTM(Conv2DBase):
                 width, 
                 height
             )
-        )
+        ).to(self.device)
         self.Wco = nn.Parameter(
             torch.zeros(
                 1, 
@@ -148,4 +149,31 @@ class ConvLSTM(Conv2DBase):
                 width, 
                 height
             )
+        ).to(self.device)
+
+class SampleConvLSTMNet(nn.Module):
+    def __init__(self,in_channels,hidden_channels, kernel_size, stride, in_size):
+        super(SampleConvLSTMNet, self).__init__()
+
+        self.add_module(
+            "convlstm",
+            ConvLSTM(
+                in_channels=in_channels,
+                hidden_channels=hidden_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                in_size=in_size
+            )
         )
+        self.add_module("gap",nn.AdaptiveAvgPool2d((1,1)))
+        self.add_module("flatten",nn.Flatten())
+        self.add_module("fc",nn.Linear(hidden_channels, 10)) 
+        
+
+    def forward(self,x):
+        x = self.convlstm(x)
+        x = self.gap(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        output = F.log_softmax(x, dim=1)
+        return output

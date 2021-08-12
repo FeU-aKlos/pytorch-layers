@@ -73,13 +73,13 @@ class DenseBlock(nn.Module):
                 efficient=efficient,
             )
             self.add_module('denselayer%d' % (i + 1), layer)
-        out_channles = in_channels+num_layers * growth_rate
+        out_channels = in_channels+num_layers * growth_rate
         trans = Transition(
-            in_channels=out_channles, 
-            out_channles=int(out_channles * compression)
+            in_channels=out_channels, 
+            out_channles=int(out_channels * compression)
         )
         self.add_module('transition%d' % (i + 1), trans)
-        out_channles = int(out_channles * compression)
+        self.out_channels = int(out_channels * compression)
 
 
     def forward(self, init_features):
@@ -91,3 +91,26 @@ class DenseBlock(nn.Module):
             else:
                 features = layer(torch.cat(features, 1))
         return features
+
+class SampleDenseNet(nn.Module):
+    def __init__(self,in_channels,num_layers=16):
+        super(SampleDenseNet, self).__init__()
+
+        self.add_module(
+            "db",
+            DenseBlock(
+                num_layers=num_layers,in_channels=in_channels
+            )
+        )
+        self.add_module("flatten",nn.Flatten())
+        self.add_module("gap",nn.AdaptiveAvgPool2d((1,1)))
+        self.add_module("fc",nn.Linear(self.db.out_channels, 10)) 
+        
+
+    def forward(self,x):
+        x = self.db(x)
+        x = self.gap(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        output = F.log_softmax(x, dim=1)
+        return output

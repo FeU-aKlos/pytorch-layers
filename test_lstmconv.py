@@ -1,11 +1,18 @@
+import torch
 from datetime import time
 import unittest
-from lstmconv import ConvLSTM
-import torch
+from lstmconv import ConvLSTM,SampleConvLSTMNet
+import torch.optim as optim
+from torchvision import datasets, transforms
+from torch.optim.lr_scheduler import StepLR
+import config
+from utils import train, test
+
 from math import ceil
 class TestConvLSTM(unittest.TestCase):
     
     def setUp(self):
+        self.device = torch.device("cuda" if  torch.cuda.is_available() else "cpu")
         self.batch_size = 16
         self.input_width = self.input_height=32
         self.in_channels = 3
@@ -22,10 +29,10 @@ class TestConvLSTM(unittest.TestCase):
             stride=self.stride,
             in_size=[self.input_width,self.input_height],
             time_steps=self.time_steps
-        )
+        ).to(self.device)
     
     def test_forward(self):
-        x = torch.rand([self.batch_size,self.in_channels,self.input_width,self.input_height])
+        x = torch.rand([self.batch_size,self.in_channels,self.input_width,self.input_height]).to(self.device)
         self.assertTrue(
             self.conv_lstm(x).size()
                 ==
@@ -44,7 +51,7 @@ class TestConvLSTM(unittest.TestCase):
             stride=stride,
             in_size=[self.input_width,self.input_height],
             time_steps=self.time_steps
-        )
+        ).to(self.device)
 
         self.assertTrue(
             self.conv_lstm(x).size()
@@ -64,7 +71,7 @@ class TestConvLSTM(unittest.TestCase):
             stride=stride,
             in_size=[self.input_width,self.input_height],
             time_steps=self.time_steps
-        )
+        ).to(self.device)
 
         self.assertTrue(
             self.conv_lstm(x).size()
@@ -86,7 +93,7 @@ class TestConvLSTM(unittest.TestCase):
             stride=stride,
             in_size=[self.input_width,self.input_height],
             time_steps=self.time_steps
-        )
+        ).to(self.device)
 
         self.assertTrue(
             self.conv_lstm(x).size()
@@ -152,3 +159,54 @@ class TestConvLSTM(unittest.TestCase):
             )
         ) 
     
+class TestSampleConvLSTMNet(unittest.TestCase):
+    def setUp(self):
+        print()
+        self.in_channels = 1
+        self.hidden_channels = 32
+        self.kernel_size = [3,3]
+        self.stride = [2,2]
+        self.in_size = [28,28]
+
+        self.device = torch.device("cuda" if  torch.cuda.is_available() else "cpu")
+        self.model = SampleConvLSTMNet(
+            in_channels=self.in_channels,
+            hidden_channels=self.hidden_channels,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            in_size=self.in_size
+        ).to(self.device)
+        torch.manual_seed(config.seed)
+
+
+        train_kwargs = {'batch_size': config.batch_size}
+        test_kwargs = {'batch_size': config.test_batch_size}
+        if self.device.type=="cuda":
+            cuda_kwargs = {'num_workers': 1,
+                        'pin_memory': True,
+                        'shuffle': True}
+            train_kwargs.update(cuda_kwargs)
+            test_kwargs.update(cuda_kwargs)
+
+        transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+            ])
+        dataset1 = datasets.MNIST('../data', train=True, download=True,
+                        transform=transform)
+        dataset2 = datasets.MNIST('../data', train=False,
+                        transform=transform)
+        self.train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
+        self.test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+
+
+    def test_train_and_test(self):
+
+        optimizer = optim.Adadelta(self.model.parameters(), lr=config.lr)
+
+        scheduler = StepLR(optimizer, step_size=1, gamma=config.gamma)
+        for epoch in range(1, config.epochs + 1):
+            train(self.model, self.device, self.train_loader, optimizer, epoch)
+            scheduler.step()
+            print()
+        test(self.model, self.device, self.test_loader)
