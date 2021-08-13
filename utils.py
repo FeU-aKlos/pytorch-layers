@@ -16,9 +16,9 @@ def train(model, device, train_loader, optimizer, epoch):
         nr_samples+=target.size()[0]
         optimizer.step()
         if batch_idx % config.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+            print('Train Epoch: {} [{}/{} ({:.2f}%)]{}Loss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), overall_loss/nr_samples),flush=True,end="\r")
+                100. * batch_idx / len(train_loader),"\t\t" ,overall_loss/nr_samples),flush=False,end="\r")
 
 def test(model, device, test_loader):
     model.eval()
@@ -34,6 +34,6 @@ def test(model, device, test_loader):
 
     test_loss /= len(test_loader.dataset)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))

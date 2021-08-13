@@ -18,7 +18,7 @@ dropout_rate = 0.5
 #ANN training and test config
 batch_size=64
 test_batch_size=1000
-epochs=20
+epochs=3
 lr=1.0
 gamma=0.7
 seed=1

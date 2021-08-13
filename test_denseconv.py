@@ -1,6 +1,6 @@
 import unittest
 import torch 
-from denseconv import _bn_function_factory,DenseLayer,DenseBlock,Transition,SampleDenseNet
+from denseconv import DenseLayer,DenseBlock,Transition,SampleDenseNet
 from math import ceil
 import torch.optim as optim
 from torchvision import datasets, transforms
@@ -141,3 +141,7 @@ class TestSampleDenseNet(unittest.TestCase):
             scheduler.step()
             print()
         test(self.model, self.device, self.test_loader)
+
+
+if __name__=="__main__":
+    unittest.main()

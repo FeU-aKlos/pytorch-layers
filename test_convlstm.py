@@ -1,14 +1,13 @@
 import torch
-from datetime import time
+
 import unittest
-from lstmconv import ConvLSTM,SampleConvLSTMNet
+from convlstm import ConvLSTM,SampleConvLSTMNet
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import config
 from utils import train, test
 
-from math import ceil
 class TestConvLSTM(unittest.TestCase):
     
     def setUp(self):
@@ -210,3 +209,6 @@ class TestSampleConvLSTMNet(unittest.TestCase):
             scheduler.step()
             print()
         test(self.model, self.device, self.test_loader)
+
+if __name__=="__main__":
+    unittest.main()
