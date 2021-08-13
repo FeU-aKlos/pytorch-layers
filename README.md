@@ -73,7 +73,7 @@ python -m unittest test_convlstm.py
 ```
 
 ## ConvGRU
-The implementaion is based on [this research paper.](https://arxiv.org/pdf/1511.06432v4.pdf). The implementation is thought for image classification tasks and is similar to the implementation of the Recurrent Convolution and ConvLSTM. Instead of feeding new samples of a time sequence into the ConvGRU, we feed the initial sample. The forward input is assumed to has the following formating: B,C,W,H. In the current implementation, only kernels with uneven size are possible. Each convolution is followed by a dedicated batch normalization layer. For that reason, the bias is omitted. The weights are initialized with *xavier_uniform*. The implementation details can be obtained by the file *convgru.py*, and class *ConvGRU*. 
+The implementaion of the fully gated ConvGRU version is based on [this research paper](https://arxiv.org/pdf/1511.06432v4.pdf) and Type 2 Version is based on [this research paper](https://arxiv.org/pdf/1701.05923.pdf). The implementation is thought for image classification tasks and is similar to the implementation of the Recurrent Convolution and ConvLSTM. Instead of feeding new samples of a time sequence into the ConvGRU, we feed the initial sample. The forward input is assumed to has the following formating: B,C,W,H. In the current implementation, only kernels with uneven size are possible. Each convolution is followed by a dedicated batch normalization layer. For that reason, the bias is omitted. The weights are initialized with *xavier_uniform*. The implementation details can be obtained by the file *convgru.py*, and class *ConvGRU*. 
 
 The class can be used as follows:
 
@@ -93,8 +93,5 @@ A Sample network containing a ConvGRU-layer can be obtained from class *SampleCo
 python -m unittest test_convgru.py
 ```
 
-### Fully gated
-
-### Type 2
 
 ## DenseConv
