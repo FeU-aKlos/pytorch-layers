@@ -95,3 +95,28 @@ python -m unittest test_convgru.py
 
 
 ## DenseConv
+The implementation is mainly based on [this github repository](https://github.com/gpleiss/efficient_densenet_pytorch) (which was inspired by [this research paper](https://arxiv.org/pdf/1707.06990.pdf)). The main differences are, that the weights are initialized, depending on the configured activation function. Furthermore, dropout is optional. Those configurations can be done in *config.py*-file. The implementation details can be obtained by the file *denseconv.py*, and classes *Transition*,*DenseLayer*,*DenseBlock*. 
+
+The class *DenseBlock* can be used as follows:
+
+```python
+DenseBlock(
+    num_layers=num_layers,
+    in_channels=in_channels
+)
+```
+
+A Sample network containing a DenseBlock-layer can be obtained from class *SampleDenseNet*. By running the following command, certain unittest (including the training and testing of the sample network class *SampleDenseNet*) can be executed
+
+```bash
+python -m unittest test_denseconv.py
+```
+
+# Running all implemented unittest.TestCases
+
+```bash
+bash exec-tests.sh
+```
+
+Configurations regarding training and test can be done in *config.py*-file.
+
