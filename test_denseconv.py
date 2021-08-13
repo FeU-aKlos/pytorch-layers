@@ -113,10 +113,13 @@ class TestSampleDenseNet(unittest.TestCase):
         train_kwargs = {'batch_size': config.batch_size}
         test_kwargs = {'batch_size': config.test_batch_size}
         if self.device.type=="cuda":
-            cuda_kwargs = {'num_workers': 1,
+            cuda_kwargs = {'num_workers': 0,
                         'pin_memory': True,
                         'shuffle': True}
             train_kwargs.update(cuda_kwargs)
+            cuda_kwargs = {'num_workers': 0,
+                        'pin_memory': True,
+                        'shuffle': False}
             test_kwargs.update(cuda_kwargs)
 
         transform=transforms.Compose([
