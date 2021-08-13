@@ -35,14 +35,14 @@ class LayerBase(nn.Module):
         return activation_func_dict[self.act_function_name]()
 
 
-    def _initialize(self,layer:torch.nn.Module):
+    def _initialize(self,layer:torch.nn.Module, act_fn=config.act_function_name):
         """
         @brief: initializes the weights depending on the activation function.
         """
-        if self.act_function_name in ["RELU",  "LEAKY_RELU"]:
-            torch.nn.init.kaiming_uniform_(layer.weight,nonlinearity=self.act_function_name.lower())
-        elif self.act_function_name in ["TANH",  "SIGMOID"]:
-            torch.nn.init.xavier_uniform_(layer.weight,nn.init.calculate_gain(self.act_function_name.lower()))
+        if act_fn in ["RELU",  "LEAKY_RELU"]:
+            torch.nn.init.kaiming_uniform_(layer.weight,nonlinearity=act_fn.lower())
+        elif act_fn in ["TANH",  "SIGMOID"]:
+            torch.nn.init.xavier_uniform_(layer.weight,nn.init.calculate_gain(act_fn.lower()))
 
 
 class Conv2DBase(LayerBase):

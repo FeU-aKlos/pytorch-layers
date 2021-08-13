@@ -14,7 +14,7 @@ class TestLayerBase(unittest.TestCase):
 
     def setUp(self):
         self.layerbase_relu = LayerBase("RELU",False)
-        self.module_list = torch.nn.ModuleList([self.layerbase_relu,LayerBase("SIGMOID",False),LayerBase("TANH",False),LayerBase("LEAKY_RELU",False),LayerBase("ELU",False)])        
+        self.module_list = torch.nn.ModuleList([self.layerbase_relu,LayerBase("SIGMOID",False),LayerBase("TANH",False),LayerBase("LEAKY_RELU",False)])        
 
     def test_activation_func(self):
         self.assertEqual(self.layerbase_relu.act_function_name,"RELU")
@@ -29,10 +29,8 @@ class TestLayerBase(unittest.TestCase):
             w = conv.weight.clone()
             m._initialize(conv)
             is_equal = torch.equal(conv.weight,w)
-            if m.act_function_name != "ELU":
-                self.assertFalse(is_equal)
-            else:
-                self.assertTrue(is_equal)
+            self.assertFalse(is_equal)
+
 
 class TestConv2DBase(unittest.TestCase):
     def setUp(self):

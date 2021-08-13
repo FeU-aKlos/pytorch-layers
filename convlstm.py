@@ -59,6 +59,7 @@ class ConvLSTM(Conv2DBase):
                 bias=False if config.employ_batch_normalization_conv else True
             )
         )
+        self._initialize(self.conv_t,"SIGMOID")
         
         self.add_module(
             "bn", nn.ModuleList(

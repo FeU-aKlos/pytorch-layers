@@ -67,6 +67,7 @@ class ConvGRUFullyGated(Conv2DBase):
                 bias=False
             )
         )
+        self._initialize(self.conv_w,"SIGMOID")
         self.add_module(
             "bn_w", 
             nn.ModuleList([
@@ -86,6 +87,7 @@ class ConvGRUFullyGated(Conv2DBase):
                 bias=False 
             )
         )
+        self._initialize(self.conv_uzr,"SIGMOID")
         self.add_module(
             "conv_u",nn.Conv2d(
                 in_channels=self.hidden_channels,
@@ -96,6 +98,7 @@ class ConvGRUFullyGated(Conv2DBase):
                 bias=False 
             )
         )
+        self._initialize(self.conv_u,"SIGMOID")
         self.add_module(
             "bn_uzr",
             nn.ModuleList([
