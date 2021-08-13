@@ -24,7 +24,24 @@ Conv2D(
 )
 ```
 
+A Sample network containing a Conv2D-layer can be obtained from class *SampleConvNet*.
+
 ## Recurrent Convolution
+The implemenation is based on [this](https://www.cv-foundation.org/openaccess/content_cvpr_2015/papers/Liang_Recurrent_Convolutional_Neural_2015_CVPR_paper.pdf) research paper. Different from the original paper, local response normalization has been replaced by batch normalization. The implementation details can be found in *recurrentconv.py* in the class *RecurrentConv*. As above mentioned, the parameters about batch normalization as well as dropout can be configured by the *config.py*-file.
+
+The class can be used as follows:
+
+```python
+RecurrentConv(
+    in_channels=in_channels,
+    out_channels=out_channels,
+    kernel_size=kernel_size,
+    stride=stride,
+    in_size=in_size
+)
+```
+
+A Sample network containing a RecurrentConv-layer can be obtained from class *SampleRecurrentConvNet*.
 
 ## ConvLSTM
 
