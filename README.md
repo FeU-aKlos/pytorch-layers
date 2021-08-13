@@ -1,3 +1,14 @@
+# conda environment 
+
+Execute the following command in the git repo:
+
+```bash
+conda env create --name tl --file environment.yml
+conda activate tl
+```
+
+### Note: The environment file is created with NVIDIA-GPU support Cuda 10.2
+
 # Contents
 This repository contains the implementation of the following layers:
 - Convolution
@@ -120,13 +131,4 @@ bash exec-tests.sh
 
 Configurations regarding training and test can be done in *config.py*-file.
 
-# conda environment 
 
-Execute the following command in the git repo:
-
-```bash
-conda env create --name tl --file environment.yml
-conda activate tl
-```
-
-### Note: The environment file is created with NVIDIA-GPU support Cuda 10.2
